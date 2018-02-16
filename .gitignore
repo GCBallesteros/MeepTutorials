@@ -1,2 +1,5 @@
 *.h5
 *.png
+frequency_monitors/out
+frequency_monitors/ldos
+.ipynb_checkpoints
