@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-
 import h5py
 import numpy as np
+import argparse
+
 import matplotlib
 matplotlib.rcParams["backend"] = "TkAgg"
 import matplotlib.pyplot as plt
@@ -12,68 +13,103 @@ def find_nearest(array, value):
     idx = (np.abs(array-value)).argmin()
     return idx
 
-n_freq_points = 250
-filename = 'ring_resonator-freq-monitor.h5'
-f = h5py.File(filename, 'r')
+def sigmoid_apodization(t, t0, tau):
+    """Sigmoid apodization function.
 
-# Get the data
-field = np.array(f[list(f.keys())[0]])
+    Used to attenuate the beginning of the signal.
 
-# Get monitor metadata
-max_freq = f.attrs.get('maxfreq')
-min_freq = f.attrs.get('minfreq')
-dt = f.attrs.get('dt')
-xmin = f.attrs.get('xmin')
-xmax = f.attrs.get('xmax')
-ymin = f.attrs.get('ymin')
-ymax = f.attrs.get('ymax')
-f.close()
+    Arguments:
+    t: Array with times.
+    t0: Center point of the sigmoid.
+    tau: Charectistic ramp up time. Bigger values produce
+         smoother ramp ups."""
+    return 1 / (1 + np.exp(-(t-t0)/tau))
+
+def load_monitor(fname):
+    f = h5py.File(fname, 'r')
+
+    field = np.array(f[list(f.keys())[0]])
+
+    metadata = {'max_freq': f.attrs.get('maxfreq'),
+                'min_freq': f.attrs.get('minfreq'),
+                'dt': f.attrs.get('dt'),
+                'xmin': f.attrs.get('xmin'),
+                'xmax': f.attrs.get('xmax'),
+                'ymin': f.attrs.get('ymin'),
+                'ymax': f.attrs.get('ymax')}
+
+    f.close()
+
+    return field, metadata
+
+def transform_field(field, metadata, npoints, apodization_func=None):
+    max_freq = metadata['max_freq']
+    min_freq = metadata['min_freq']
+    dt = metadata['dt']
+
+    if apodization_func is not None:
+        # For weakly resonant structures sometimes you sometimes need to
+        # apodize the field to avoid having the source completely dominate
+        # the output.
+        # Note: Apodization  messes up energy normalization.
+        t = np.arange(0, field.shape[-1])*dt
+        field = field * apodization_func(t)
+
+    # Depending on how many frequencies you want to output you may need
+    # to pad with zeros the input to the FFT.
+    n_sample_points = 2 * int(npoints / (max_freq-min_freq) * max_freq)
+
+    fft_field = abs(np.fft.fft(field, n=n_sample_points, axis=-1).real)
+    fft_field = fft_field[:, :, :fft_field.shape[-1]//2]
+    freqs = np.fft.fftfreq(n_sample_points, d=dt)[:(n_sample_points/2)]
+
+    # We are only interested on the frequencies inside the source bandwidth
+    mask = (freqs >= min_freq) * (freqs <= max_freq)
+    freqs = freqs[mask]
+    fft_field = fft_field[:, :, mask]
+
+    return(freqs, fft_field)
 
 
-# For weakly resonant structures sometimes you sometimes need to
-# apodize the field to avoid having the source completely dominate
-# the output.
-# Note: Apodization completely messes up any energy normalization.
-#
-# Ring resonator examples needs no apodization
-t0=0.   
-tau=0.01 # small tau means a fast ramp up
-t = np.arange(0, field.shape[-1])*dt
-apodize = 1 / (1 + np.exp(-(t-t0)/tau))
-field = field * apodize
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Plot frequency domain field profile monitor.')
+    parser.add_argument('--fname',
+                        help='Input h5 filename')
+    parser.add_argument('--npoints', default=100, type=int,
+                        help='Number of frequency points to compute. Spacing is uniform.')
+    parser.add_argument('--t0', default=0, type=float,
+                        help='Center of the apodization function.')
+    parser.add_argument('--tau', default=1e-10, type=float,
+                        help='Ramp up time of the apodization function.')
+    args = parser.parse_args()
 
-# You may need to pad with zeros or cut the input fields to FFT 
-# in order to get the desired amount of frequency points on the output. 
-n_sample_points = 2 * int(n_freq_points/(max_freq-min_freq) * max_freq)
+    (field, metadata) = load_monitor(args.fname)
 
-fft_field = abs(np.fft.fft(field, n=n_sample_points, axis=-1).real)
-fft_field = fft_field[:, :, :fft_field.shape[-1]//2]
-freqs = np.fft.fftfreq(n_sample_points, d=dt)[:(n_sample_points/2)]
+    apodize = lambda t: sigmoid_apodization(t, args.t0, args.tau)
+    (freqs, fft_field) = transform_field(field, metadata, args.npoints, apodize)
 
-# We are only interested on the frequencies inside the source bandwidth
-mask = (freqs >= min_freq) * (freqs <= max_freq)
-freqs = freqs[mask]
-fft_field = fft_field[:, :, mask]
+    # Plot Results
+    central_freq = (metadata['max_freq']+metadata['min_freq'])*0.5
 
+    fig, ax = plt.subplots()
+    plt.subplots_adjust(left=0.1, bottom=0.25)
+    field_plot = plt.imshow(fft_field[:,::-1, find_nearest(freqs, central_freq)].T,
+                            extent=[metadata['xmin'],
+                                    metadata['xmax'],
+                                    metadata['ymin'],
+                                    metadata['ymax']])
+    plt.colorbar()
 
-# Plot Results
-central_freq = (max_freq+min_freq)*0.5
+    axcolor = 'lightgoldenrodyellow'
+    axfreq = plt.axes([0.1, 0.1, 0.65, 0.03], facecolor=axcolor)
+    sfreq = Slider(axfreq, 'Freq', np.min(freqs), np.max(freqs),
+                   valinit=central_freq, valfmt='%0.3f')
 
-fig, ax = plt.subplots()
-plt.subplots_adjust(left=0.1, bottom=0.25)
-field_plot = plt.imshow(fft_field[:,::-1, find_nearest(freqs, central_freq)].T,
-	                    extent=[xmin, xmax, ymin, ymax])
-plt.colorbar()
+    def update(val):
+        freq = sfreq.val
+        field_plot.set_data(fft_field[:, ::-1, find_nearest(freqs, freq)].T)
+        field_plot.autoscale()
+        fig.canvas.draw_idle()
+    sfreq.on_changed(update)
 
-axcolor = 'lightgoldenrodyellow'
-axfreq = plt.axes([0.1, 0.1, 0.65, 0.03], facecolor=axcolor)
-sfreq = Slider(axfreq, 'Freq', np.min(freqs), np.max(freqs), valinit=central_freq)
-
-def update(val):
-    freq = sfreq.val
-    field_plot.set_data(fft_field[:,::-1, find_nearest(freqs, freq)].T)
-    field_plot.autoscale()
-    fig.canvas.draw_idle()
-sfreq.on_changed(update)
-
-plt.show()
+    plt.show()
