@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import h5py
 
 # Modified from https://gist.github.com/dideler/2395703
@@ -41,7 +40,3 @@ if __name__ == '__main__':
 
     myargs.pop('fname', None)
     add_attributes(fname, myargs)
-
-
-
-	
