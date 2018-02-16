@@ -53,7 +53,7 @@
 
 (define (add-attributes fname attributes)
   (let
-    ((command (string-append "./add_attr.py -fname " (get-filename-prefix) "-" fname ".h5 "))
+    ((command (string-append "python ./add_attr.py -fname " (get-filename-prefix) "-" fname ".h5 "))
       (attribute-string (string-join (map attr->string attributes))))
     (string-append command attribute-string)))
 
@@ -71,7 +71,7 @@
 (define dt-monitor (let ((fmax (+ fcen (/ df 2))))
         (/ 1 (* 2 fmax))))
 (define ring-volume (make-volume (* -1 (+ r w 0.2)) (+ r w 0.2)
-                              (* -1 (+ r w w output-gap 0.2)) (+ r w 0.2)))
+                                 (* -1 (+ r w 0.2)) (+ r w 0.2)))
 (define ring-monitor (freq-field-monitor "freq-monitor" dt-monitor ring-volume output-efield-z))
 
 
@@ -84,7 +84,7 @@
 ; Add metadata to output
 (system (add-attributes "freq-monitor" (list (list "xmin" (* -1 (+ r w 0.2)))
                                              (list "xmax" (+ r w 0.2))
-                                             (list "ymin" (* -1 (+ r w w output-gap 0.2)))
+                                             (list "ymin" (* -1 (+ r w 0.2)))
                                              (list "ymax" (+ r w 0.2))
                                              (list "dt" dt-monitor)
                                              (list "minfreq" (- fcen (/ df 2)))
