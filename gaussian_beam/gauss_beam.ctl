@@ -1,3 +1,10 @@
+; Released under the Apache v2 License
+; For a full copy of the license please visit:
+; https://www.apache.org/licenses/LICENSE-2.0
+;
+; Author: Guillem Ballesteros
+; Date: February 2018
+
 (define-param s 20)
 (define-param dpml 1)
 (define-param T 50) ; run time
