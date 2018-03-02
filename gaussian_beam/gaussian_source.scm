@@ -11,11 +11,11 @@
   (let
     ((z-prime (/ z zR))
      (k-norm (vector3-norm k))
-     (r2 (vector3-dot x x)))
+     (x2 (vector3-dot x x)))
     (*
       (/ 1 (sqrt (+ 1 (* z-prime z-prime))))
       (exp (+
-        (/ (* -1 k-norm r2)        (* 2 zR (+ 1 (* z-prime z-prime))))
-        (/ (* 0-1i z-prime k-norm r2) (* 2 zR (+ 1 (* z-prime z-prime))))
+        (/ (* -1 k-norm x2)        (* 2 zR (+ 1 (* z-prime z-prime))))
+        (/ (* 0-1i z-prime k-norm x2) (* 2 zR (+ 1 (* z-prime z-prime))))
         (* 0+1i (atan z-prime))
         (* 0-1i (vector3-dot k x))))))))
