@@ -61,7 +61,7 @@ def transform_field(field, metadata, npoints, apodization_func=None):
 
     fft_field = abs(np.fft.fft(field, n=n_sample_points, axis=-1).real)
     fft_field = fft_field[:, :, :fft_field.shape[-1]//2]
-    freqs = np.fft.fftfreq(n_sample_points, d=dt)[:(n_sample_points/2)]
+    freqs = np.fft.fftfreq(n_sample_points, d=dt)[:(int(n_sample_points/2))]
 
     # We are only interested on the frequencies inside the source bandwidth
     mask = (freqs >= min_freq) * (freqs <= max_freq)
