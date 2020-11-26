@@ -14,9 +14,11 @@ Make *show_freq_monitor.py* and *add_attr.py* executable.
 
 2. To show the interactive frequency monitor:
   ```
-  ./show_freq_monitor --fname ring_resonator-freq-monitor.h5 --npoints 200
+  ./show_freq_monitor --fname ring_resonator-freq-monitor.h5 --npoints 200 --ename ring-resonator-eps-000000.00.h5
   ```
 
+
+The epsilon overlay can be omitted, only the fields will be displayed then.
 
 You can view the different options available for the frequency monitor viewer by doing:
 ```
