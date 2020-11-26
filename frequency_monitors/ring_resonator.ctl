@@ -77,7 +77,7 @@
 
 ; Run simulation
 (run-sources+ (stop-when-fields-decayed 25 Ez (vector3 (+ r 0.1) 0) 1e-8)
-	      (at-beginning output-epsilon)
+	      (at-beginning (in-volume phc-volume output-epsilon))
 	      ring-monitor
 	      (dft-ldos fcen df nfreq))
 
@@ -89,7 +89,7 @@
                                              (list "dt" dt-monitor)
                                              (list "minfreq" (- fcen (/ df 2)))
                                              (list "maxfreq" (+ fcen (/ df 2)))
-                                             (list "res" 10))))
+                                             (list "res" resolution))))
 
 ; Meep gets stuck in interactive mode after a system call. Don't know how to fix
 ; it yet so I just force quit.
